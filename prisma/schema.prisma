@@ -1,0 +1,381 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  BUSINESS_OWNER
+  BUYER
+}
+
+enum BusinessStatus {
+  PENDING_KYC
+  UNDER_REVIEW
+  VERIFIED
+  SUSPENDED
+  REJECTED
+}
+
+enum KYCDocumentType {
+  BUSINESS_REGISTRATION
+  TAX_CERTIFICATE
+  BANK_STATEMENT
+  ID_DOCUMENT
+  PROOF_OF_ADDRESS
+}
+
+enum KYCDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Metal {
+  GOLD
+  SILVER
+  PLATINUM
+  PALLADIUM
+  NICKEL_SILVER
+}
+
+enum ProductCategory {
+  BULLION_GOLD
+  BULLION_SILVER
+  COMMEMORATIVE_GOLD
+  COMMEMORATIVE_SILVER
+  NON_PRECIOUS
+  PLATINUM_PALLADIUM
+}
+
+enum WeightUnit {
+  OZ
+  GRAM
+  KG
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_APPROVAL
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  REFUNDED
+}
+
+enum QuoteStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  CANCELLED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  passwordHash   String?
+  role           UserRole  @default(BUYER)
+  businessId     String?
+  phone          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  business       Business? @relation(fields: [businessId], references: [id])
+  orders         Order[]
+  quotes         Quote[]
+  stockNotifications StockNotification[]
+}
+
+model Banner {
+  id        String        @id @default(cuid())
+  key       String        @unique
+  updatedAt DateTime      @updatedAt
+  slides    BannerSlide[]
+}
+
+model BannerSlide {
+  id       String  @id @default(cuid())
+  bannerId String
+  order    Int     @default(0)
+  imageUrl String
+  title    String?
+  subtitle String?
+  linkUrl  String?
+  banner   Banner  @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@index([bannerId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Business {
+  id              String         @id @default(cuid())
+  name            String
+  legalName       String
+  taxId           String         @unique
+  registrationNo  String?
+  email           String         @unique
+  phone           String
+  website         String?
+  status          BusinessStatus @default(PENDING_KYC)
+  creditLimit     Decimal        @default(0) @db.Decimal(18, 2)
+  creditUsed      Decimal        @default(0) @db.Decimal(18, 2)
+  paymentTermDays Int            @default(30)
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  address         Address?
+  users           User[]
+  kycDocuments    KYCDocument[]
+  orders          Order[]
+  quotes          Quote[]
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  street1    String
+  street2    String?
+  city       String
+  state      String?
+  postalCode String
+  country    String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model KYCDocument {
+  id           String            @id @default(cuid())
+  businessId   String
+  type         KYCDocumentType
+  status       KYCDocumentStatus @default(PENDING)
+  fileUrl      String
+  fileName     String
+  reviewNotes  String?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  uploadedAt   DateTime          @default(now())
+  business     Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  name           String
+  sku            String          @unique
+  metal          Metal
+  weight         Decimal         @db.Decimal(10, 4)
+  weightUnit     WeightUnit      @default(OZ)
+  purity         Decimal         @db.Decimal(5, 4)
+  mint           String
+  denomination   String?
+  mintage        Int?
+  diameter       Decimal?        @db.Decimal(6, 2)
+  year           Int?
+  grade          String?
+  description    String?
+  images         String[]
+  isActive       Boolean         @default(true)
+  category       ProductCategory  @default(BULLION_GOLD)
+  fixedUnitPrice Decimal?        @db.Decimal(18, 2)
+  premiumPercent Decimal         @default(0) @db.Decimal(6, 4)
+  premiumFixed   Decimal         @default(0) @db.Decimal(18, 2)
+  minOrderQty    Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  inventory      InventoryItem[]
+  orderItems     OrderItem[]
+  quoteItems     QuoteItem[]
+  priceTiers     PriceTier[]
+  stockNotifications StockNotification[]
+}
+
+model StockNotification {
+  id         String    @id @default(cuid())
+  productId  String
+  userId     String
+  quantity   Int
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+}
+
+model PriceTier {
+  id             String   @id @default(cuid())
+  productId      String
+  minQty         Int
+  premiumPercent Decimal? @db.Decimal(6, 4)
+  fixedUnitPrice Decimal? @db.Decimal(18, 2)
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, minQty])
+  @@index([productId])
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  productId   String
+  sku         String   @unique
+  quantity    Int      @default(0)
+  reserved    Int      @default(0)
+  location    String?
+  serialNo    String?
+  batchNo     String?
+  costPrice   Decimal  @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+model SpotPrice {
+  id        String   @id @default(cuid())
+  metal     Metal
+  price     Decimal  @db.Decimal(18, 6)
+  currency  String   @default("USD")
+  source    String?
+  timestamp DateTime @default(now())
+
+  @@index([metal, timestamp])
+}
+
+model Quote {
+  id              String      @id @default(cuid())
+  quoteNumber     String      @unique
+  businessId      String
+  userId          String
+  status          QuoteStatus @default(ACTIVE)
+  expiresAt       DateTime
+  spotPriceGold   Decimal?    @db.Decimal(18, 6)
+  spotPriceSilver Decimal?    @db.Decimal(18, 6)
+  spotPricePlatinum Decimal?  @db.Decimal(18, 6)
+  spotPricePalladium Decimal? @db.Decimal(18, 6)
+  subtotal        Decimal     @db.Decimal(18, 2)
+  taxAmount       Decimal     @default(0) @db.Decimal(18, 2)
+  total           Decimal     @db.Decimal(18, 2)
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  business        Business    @relation(fields: [businessId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+  items           QuoteItem[]
+  order           Order?
+}
+
+model QuoteItem {
+  id         String   @id @default(cuid())
+  quoteId    String
+  productId  String
+  quantity   Int
+  spotPrice  Decimal  @db.Decimal(18, 6)
+  premium    Decimal  @db.Decimal(18, 2)
+  unitPrice  Decimal  @db.Decimal(18, 2)
+  totalPrice Decimal  @db.Decimal(18, 2)
+  quote      Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  businessId      String
+  userId          String
+  quoteId         String?       @unique
+  status          OrderStatus   @default(PENDING_APPROVAL)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  subtotal        Decimal       @db.Decimal(18, 2)
+  taxAmount       Decimal       @default(0) @db.Decimal(18, 2)
+  shippingCost    Decimal       @default(0) @db.Decimal(18, 2)
+  total           Decimal       @db.Decimal(18, 2)
+  shippingAddress Json?
+  trackingNumber  String?
+  carrier         String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  notes           String?
+  internalNotes   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  business        Business      @relation(fields: [businessId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+  quote           Quote?        @relation(fields: [quoteId], references: [id])
+  items           OrderItem[]
+  invoice         Invoice?
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  spotPrice  Decimal @db.Decimal(18, 6)
+  premium    Decimal @db.Decimal(18, 2)
+  unitPrice  Decimal @db.Decimal(18, 2)
+  totalPrice Decimal @db.Decimal(18, 2)
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  invoiceNumber String    @unique
+  orderId       String    @unique
+  pdfUrl        String?
+  issuedAt      DateTime  @default(now())
+  dueAt         DateTime
+  paidAt        DateTime?
+  amount        Decimal   @db.Decimal(18, 2)
+  order         Order     @relation(fields: [orderId], references: [id])
+}
