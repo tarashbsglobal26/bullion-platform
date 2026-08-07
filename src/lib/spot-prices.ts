@@ -16,7 +16,7 @@ const FIXED_PRICES: Partial<Record<keyof SpotPriceMap, number>> = {
   NICKEL_SILVER: 0.35,
 };
 
-interface SpotPriceMap {
+export interface SpotPriceMap {
   GOLD: number;
   SILVER: number;
   PLATINUM: number;

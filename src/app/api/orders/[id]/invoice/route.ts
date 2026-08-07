@@ -3,16 +3,17 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateInvoicePDF } from "@/lib/invoice";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as any;
   const isAdmin = ["SUPER_ADMIN", "ADMIN"].includes(user.role);
+  const { id } = await params;
 
   const order = await prisma.order.findUnique({
     where: {
-      id: params.id,
+      id,
       ...(!isAdmin ? { businessId: user.businessId } : {}),
     },
     include: {
@@ -49,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     total: Number(order.total),
   });
 
-  return new NextResponse(pdfBytes, {
+  return new NextResponse(Buffer.from(pdfBytes) as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="invoice-${order.invoice.invoiceNumber}.pdf"`,

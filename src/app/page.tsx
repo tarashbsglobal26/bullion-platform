@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
+import { getLatestSpotPrices, calculateProductPrice, SpotPriceMap } from "@/lib/spot-prices";
 import { formatCurrency, formatWeight } from "@/lib/utils";
 import { ProductCategory } from "@prisma/client";
 import Link from "next/link";
@@ -127,7 +127,7 @@ function Section({
 }: {
   sectionKey: string;
   products: any[];
-  spotPrices: Record<string, number>;
+  spotPrices: SpotPriceMap;
   isAuthenticated: boolean;
 }) {
   if (products.length === 0) return null;
@@ -164,7 +164,7 @@ function Section({
           <ProductCard
             key={p.id}
             product={p}
-            spotPrice={spotPrices[p.metal]}
+            spotPrice={spotPrices[p.metal as keyof SpotPriceMap]}
             isAuthenticated={isAuthenticated}
           />
         ))}

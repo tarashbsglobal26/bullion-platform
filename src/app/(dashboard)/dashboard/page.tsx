@@ -229,7 +229,7 @@ export default async function DashboardPage() {
                             <div className="space-y-1 text-xs text-gray-600">
                               <div className="flex justify-between">
                                 <span>Weight</span>
-                                <span className="font-medium">{formatWeight(p.weight, p.weightUnit)}</span>
+                                <span className="font-medium">{formatWeight(Number(p.weight), p.weightUnit)}</span>
                               </div>
                               {p.metal !== "NICKEL_SILVER" && (
                                 <div className="flex justify-between">

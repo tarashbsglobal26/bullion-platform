@@ -10,19 +10,20 @@ const updateSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as any;
   const isAdmin = ["SUPER_ADMIN", "ADMIN"].includes(user.role);
+  const { id } = await params;
 
-  if (!isAdmin && user.businessId !== params.id) {
+  if (!isAdmin && user.businessId !== id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const business = await prisma.business.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       address: true,
       kycDocuments: true,
@@ -35,18 +36,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json(business);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session || !["SUPER_ADMIN", "ADMIN"].includes((session.user as any).role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { id } = await params;
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const business = await prisma.business.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
 
