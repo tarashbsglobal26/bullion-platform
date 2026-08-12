@@ -7,8 +7,9 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Coins, AlertCircle, CheckCircle, Mail, ExternalLink, KeyRound } from "lucide-react";
+import { AlertCircle, CheckCircle, Mail, ExternalLink, KeyRound } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const schema = z.object({
   businessName: z.string().min(2, "Required"),
@@ -136,9 +137,7 @@ export default function RegisterPage() {
 
   const Header = ({ subtitle }: { subtitle: string }) => (
     <div className="text-center mb-6">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500 mb-3">
-        <Coins className="w-6 h-6 text-white" />
-      </div>
+      <Image src="/OIP-removebg-preview.png" alt="Van Central Mint logo" width={48} height={48} className="mx-auto mb-3 w-12 h-12 object-contain" />
       <h1 className="text-2xl font-bold text-white">Register Your Business</h1>
       <p className="text-amber-300 text-sm">{subtitle}</p>
     </div>
@@ -321,9 +320,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500 mb-3">
-            <Coins className="w-6 h-6 text-white" />
-          </div>
+          <Image src="/OIP-removebg-preview.png" alt="Van Central Mint logo" width={48} height={48} className="mx-auto mb-3 w-12 h-12 object-contain" />
           <h1 className="text-2xl font-bold text-white">Register Your Business</h1>
           <p className="text-amber-300 text-sm">Step {step} of 2</p>
           <div className="flex gap-1 justify-center mt-2">
