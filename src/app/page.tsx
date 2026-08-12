@@ -4,8 +4,9 @@ import { getLatestSpotPrices, calculateProductPrice, SpotPriceMap } from "@/lib/
 import { formatCurrency, formatWeight } from "@/lib/utils";
 import { ProductCategory } from "@prisma/client";
 import Link from "next/link";
+import Image from "next/image";
 import {
-  Coins, ArrowRight, Lock, Star, Shield, TrendingUp,
+  ArrowRight, Lock, Star, Shield, TrendingUp,
   Medal, Gem, CircleDollarSign
 } from "lucide-react";
 
@@ -198,9 +199,7 @@ export default async function HomePage() {
       <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-amber-900 text-white">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center">
-              <Coins className="w-4 h-4 text-white" />
-            </div>
+            <Image src="/OIP-removebg-preview.png" alt="Van Central Mint" width={32} height={32} className="rounded-full" />
             <span className="font-bold text-lg">Wholesale Platform</span>
           </div>
           <nav className="flex items-center gap-3">
