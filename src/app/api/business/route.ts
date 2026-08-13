@@ -63,47 +63,58 @@ export async function POST(req: NextRequest) {
   const exists = await prisma.user.findUnique({ where: { email: data.userEmail } });
   if (exists) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
 
+  const businessExists = await prisma.business.findUnique({ where: { email: data.businessEmail } });
+  if (businessExists) return NextResponse.json({ error: "A business is already registered with that business email address" }, { status: 409 });
+
   const passwordHash = await bcrypt.hash(data.password, 12);
 
-  const business = await prisma.$transaction(async (tx) => {
-    // Consume the verified token
-    await tx.verificationToken.deleteMany({ where: { identifier: data.userEmail } });
+  try {
+    const business = await prisma.$transaction(async (tx) => {
+      // Consume the verified token
+      await tx.verificationToken.deleteMany({ where: { identifier: data.userEmail } });
 
-    const biz = await tx.business.create({
-      data: {
-        name: data.businessName,
-        legalName: data.legalName,
-        taxId: data.taxId,
-        registrationNo: data.registrationNo,
-        email: data.businessEmail,
-        phone: data.phone,
-        website: data.website || null,
-        address: {
-          create: {
-            street1: data.street1,
-            street2: data.street2,
-            city: data.city,
-            state: data.state,
-            postalCode: data.postalCode,
-            country: data.country,
+      const biz = await tx.business.create({
+        data: {
+          name: data.businessName,
+          legalName: data.legalName,
+          taxId: data.taxId,
+          registrationNo: data.registrationNo,
+          email: data.businessEmail,
+          phone: data.phone,
+          website: data.website || null,
+          address: {
+            create: {
+              street1: data.street1,
+              street2: data.street2,
+              city: data.city,
+              state: data.state,
+              postalCode: data.postalCode,
+              country: data.country,
+            },
           },
         },
-      },
+      });
+
+      await tx.user.create({
+        data: {
+          name: data.userName,
+          email: data.userEmail,
+          passwordHash,
+          role: "BUSINESS_OWNER",
+          businessId: biz.id,
+          emailVerified: new Date(),
+        },
+      });
+
+      return biz;
     });
 
-    await tx.user.create({
-      data: {
-        name: data.userName,
-        email: data.userEmail,
-        passwordHash,
-        role: "BUSINESS_OWNER",
-        businessId: biz.id,
-        emailVerified: new Date(),
-      },
-    });
-
-    return biz;
-  });
-
-  return NextResponse.json({ id: business.id, message: "Registration submitted. Pending KYC review." }, { status: 201 });
+    return NextResponse.json({ id: business.id, message: "Registration submitted. Pending KYC review." }, { status: 201 });
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      const field = err.meta?.target?.[0] ?? "field";
+      return NextResponse.json({ error: `A record with that ${field} already exists` }, { status: 409 });
+    }
+    throw err;
+  }
 }
