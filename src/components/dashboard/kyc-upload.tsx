@@ -45,16 +45,25 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
     setError("");
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const uploadRes = await fetch("/api/business/kyc/upload", { method: "POST", body: fd });
-      const uploadBody = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok) throw new Error(uploadBody.error || "Upload failed");
+      const presignRes = await fetch("/api/business/kyc/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, contentType: file.type, fileSize: file.size }),
+      });
+      const presignBody = await presignRes.json().catch(() => ({}));
+      if (!presignRes.ok) throw new Error(presignBody.error || "Could not prepare upload");
+
+      const putRes = await fetch(presignBody.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error("Upload to storage failed");
 
       const docRes = await fetch("/api/business/kyc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: docType, fileUrl: uploadBody.url, fileName: file.name }),
+        body: JSON.stringify({ type: docType, fileUrl: presignBody.publicUrl, fileName: file.name }),
       });
       const docBody = await docRes.json().catch(() => ({}));
       if (!docRes.ok) throw new Error(docBody.error || "Failed to save document");
@@ -129,7 +138,7 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
             />
           </label>
         </div>
-        <p className="text-xs text-gray-500">JPEG, PNG, WebP or PDF, up to 10 MB.</p>
+        <p className="text-xs text-gray-500">JPEG, PNG, WebP or PDF, up to 20 MB.</p>
 
         {documents.length > 0 && (
           <div className="border-t pt-3 space-y-2">
