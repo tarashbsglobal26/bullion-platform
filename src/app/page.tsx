@@ -9,7 +9,7 @@ export default async function HomePage() {
   const isAdmin = isAuthenticated && ["SUPER_ADMIN", "ADMIN"].includes((session!.user as any).role);
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-amber-900 text-white">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -55,7 +55,7 @@ export default async function HomePage() {
         <NewReleasesBanner isAdmin={isAdmin} />
       </main>
 
-      <footer className="border-t border-white/10">
+      <footer className="border-t border-white/10 mt-auto">
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
           © {new Date().getFullYear()} Van Central Mint Inc. All rights reserved. | B2B Wholesale Platform
         </div>
