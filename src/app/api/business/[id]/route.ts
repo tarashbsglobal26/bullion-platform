@@ -54,3 +54,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json(business);
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session || !["SUPER_ADMIN", "ADMIN"].includes((session.user as any).role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const business = await prisma.business.findUnique({
+    where: { id },
+    select: { _count: { select: { users: true, orders: true, quotes: true } } },
+  });
+  if (!business) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { users, orders, quotes } = business._count;
+  if (users > 0 || orders > 0 || quotes > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot delete: this business has ${users} user(s), ${orders} order(s), and ${quotes} quote(s). Suspend it instead, or remove those first.`,
+      },
+      { status: 400 }
+    );
+  }
+
+  await prisma.business.delete({ where: { id } });
+
+  return NextResponse.json({ success: true });
+}

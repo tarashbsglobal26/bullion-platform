@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Clock, Building2, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Building2, FileText, ExternalLink, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const STATUS_VARIANT: Record<string, any> = {
@@ -19,6 +19,7 @@ const STATUS_VARIANT: Record<string, any> = {
 
 export default function BusinessesPage() {
   const [statusFilter, setStatusFilter] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const queryClient = useQueryClient();
 
   const { data: businesses, isLoading } = useQuery({
@@ -54,12 +55,39 @@ export default function BusinessesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["businesses"] }),
   });
 
+  const deleteBusiness = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/business/${id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Failed to delete business");
+      return body;
+    },
+    onSuccess: () => {
+      setDeleteError("");
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (err: unknown) => {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete business");
+    },
+  });
+
+  const handleDelete = (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    deleteBusiness.mutate(id);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Businesses</h1>
         <p className="text-gray-500 text-sm">Manage B2B customers, KYC status, and credit limits</p>
       </div>
+
+      {deleteError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       <div className="flex gap-2 flex-wrap">
         {["", "PENDING_KYC", "UNDER_REVIEW", "VERIFIED", "SUSPENDED", "REJECTED"].map((s) => (
@@ -195,6 +223,15 @@ export default function BusinessesPage() {
                         Reinstate
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => handleDelete(biz.id, biz.name)}
+                      disabled={deleteBusiness.isPending}
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </Button>
                   </div>
                 </div>
               </CardContent>
