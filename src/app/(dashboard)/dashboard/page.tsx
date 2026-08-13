@@ -107,7 +107,7 @@ export default async function DashboardPage() {
         <p className="text-gray-500 text-sm mt-1">Welcome back, {user.name || user.email}</p>
       </div>
 
-      {ownBusiness && ownBusiness.status !== "VERIFIED" && (
+      {ownBusiness && (
         <KycUpload businessStatus={ownBusiness.status} documents={ownBusiness.kycDocuments} />
       )}
 

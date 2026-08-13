@@ -33,6 +33,12 @@ const STATUS_ICON: Record<Doc["status"], React.ElementType> = {
   REJECTED: XCircle,
 };
 
+const KYC_STATUS_META: Record<string, { label: string; badgeClass: string; icon: React.ElementType; cardClass: string }> = {
+  VERIFIED: { label: "Verified", badgeClass: "bg-green-100 text-green-700", icon: CheckCircle2, cardClass: "border-green-200 bg-green-50/50" },
+  UNDER_REVIEW: { label: "Under Verification", badgeClass: "bg-yellow-100 text-yellow-700", icon: Clock, cardClass: "border-amber-200 bg-amber-50/50" },
+};
+const DEFAULT_KYC_STATUS = { label: "Not Verified", badgeClass: "bg-red-100 text-red-700", icon: XCircle, cardClass: "border-amber-200 bg-amber-50/50" };
+
 export function KycUpload({ businessStatus, documents }: { businessStatus: string; documents: Doc[] }) {
   const router = useRouter();
   const [docType, setDocType] = useState(DOC_TYPES[0].value);
@@ -94,13 +100,39 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
   };
 
   const rejectedDocs = documents.filter((d) => d.status === "REJECTED");
+  const statusMeta = KYC_STATUS_META[businessStatus] ?? DEFAULT_KYC_STATUS;
+  const StatusIcon = statusMeta.icon;
+  const isVerified = businessStatus === "VERIFIED";
+
+  const statusBadge = (
+    <span className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${statusMeta.badgeClass}`}>
+      <StatusIcon className="w-3.5 h-3.5" /> {statusMeta.label}
+    </span>
+  );
+
+  if (isVerified) {
+    return (
+      <Card className={statusMeta.cardClass}>
+        <CardContent className="py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-green-900">
+            <FileText className="w-5 h-5" />
+            <span className="font-semibold">KYC Verification</span>
+          </div>
+          {statusBadge}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="border-amber-200 bg-amber-50/50">
+    <Card className={statusMeta.cardClass}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-amber-900">
-          <FileText className="w-5 h-5" /> Complete Your KYC Verification
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-amber-900">
+            <FileText className="w-5 h-5" /> KYC Verification
+          </CardTitle>
+          {statusBadge}
+        </div>
         <CardDescription>
           {businessStatus === "UNDER_REVIEW"
             ? "Your documents are under review. You can upload additional documents below if needed."
