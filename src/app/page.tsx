@@ -17,23 +17,14 @@ export default async function HomePage() {
             <Image src="/OIP-removebg-preview.png" alt="Van Central Mint" width={32} height={32} className="rounded-full" />
             <span className="font-bold text-lg">Wholesale Platform</span>
           </div>
-          <nav className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <Link href="/dashboard" className="text-sm text-amber-300 hover:text-white">Dashboard</Link>
-                <Link href="/catalog" className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
-                  Catalog
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="text-sm text-gray-300 hover:text-white">Sign In</Link>
-                <Link href="/register" className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
-                  Register
-                </Link>
-              </>
-            )}
-          </nav>
+          {isAuthenticated && (
+            <nav className="flex items-center gap-3">
+              <Link href="/dashboard" className="text-sm text-amber-300 hover:text-white">Dashboard</Link>
+              <Link href="/catalog" className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+                Catalog
+              </Link>
+            </nav>
+          )}
         </div>
 
         {/* Hero */}
