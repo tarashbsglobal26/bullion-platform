@@ -106,6 +106,7 @@ export default function RegisterPage() {
   // ── Account setup ───────────────────────────────────────────────────────────
 
   const proceedFromAccount = async () => {
+    setError("");
     const valid = await trigger(["userName", "password", "confirmPassword"]);
     if (valid) setAccountDone(true);
   };
@@ -113,6 +114,7 @@ export default function RegisterPage() {
   // ── Business form ───────────────────────────────────────────────────────────
 
   const nextStep = async () => {
+    setError("");
     const fields: (keyof FormData)[] = ["businessName", "legalName", "taxId", "businessEmail", "phone"];
     const valid = await trigger(fields);
     if (valid) setStep(2);
@@ -426,7 +428,7 @@ export default function RegisterPage() {
                   </div>
                   <p className="text-xs text-gray-500">By registering, you agree to our terms of service and undergo KYC verification.</p>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => { setError(""); setStep(1); }}>Back</Button>
                     <Button type="submit" className="flex-1" disabled={isSubmitting}>
                       {isSubmitting ? "Submitting…" : "Submit Application"}
                     </Button>
