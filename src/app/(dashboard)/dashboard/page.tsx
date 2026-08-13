@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
 import { ProductCategory } from "@prisma/client";
 import { NewReleasesBanner } from "@/components/dashboard/new-releases-banner";
+import { KycUpload } from "@/components/dashboard/kyc-upload";
 
 const SECTION_META: Record<string, { label: string; description: string; accent: string; icon: React.ElementType }> = {
   new2026:              { label: "New Releases 2026 — Coming Soon", description: "Latest 2026-dated coins", accent: "amber",  icon: Star },
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
   const user = session!.user as any;
   const isAdmin = ["SUPER_ADMIN", "ADMIN"].includes(user.role);
 
-  const [orderStats, quoteCount, inventoryAlerts, pendingBusinesses, verifiedBusinesses, notifyRequestCount, recentOrders, allProducts, spotPrices] =
+  const [orderStats, quoteCount, inventoryAlerts, pendingBusinesses, verifiedBusinesses, notifyRequestCount, recentOrders, allProducts, spotPrices, ownBusiness] =
     await Promise.all([
       prisma.order.aggregate({
         where: isAdmin ? {} : { businessId: user.businessId },
@@ -64,6 +65,12 @@ export default async function DashboardPage() {
         orderBy: [{ year: "desc" }, { name: "asc" }],
       }),
       getLatestSpotPrices(),
+      !isAdmin && user.businessId
+        ? prisma.business.findUnique({
+            where: { id: user.businessId },
+            select: { status: true, kycDocuments: { select: { id: true, type: true, status: true, fileName: true, reviewNotes: true } } },
+          })
+        : Promise.resolve(null),
     ]);
 
   const stats = [
@@ -99,6 +106,10 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">Welcome back, {user.name || user.email}</p>
       </div>
+
+      {ownBusiness && ownBusiness.status !== "VERIFIED" && (
+        <KycUpload businessStatus={ownBusiness.status} documents={ownBusiness.kycDocuments} />
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
