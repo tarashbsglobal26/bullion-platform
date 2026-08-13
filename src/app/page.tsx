@@ -225,8 +225,8 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 py-12 pb-14">
           <div className="max-w-2xl">
             <h1 className="text-4xl font-bold mb-3 leading-tight">
-              Premium Bullion &<br />
-              <span className="text-amber-400">Collectible Coins</span>
+              Premium Bullion Coins,<br />
+              <span className="text-amber-400">Investment Bars & Collectible Editions</span>
             </h1>
             <p className="text-gray-300 text-lg mb-6">
               B2B wholesale pricing on gold, silver, platinum and palladium. Live spot prices updated every 5 minutes.
