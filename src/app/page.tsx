@@ -51,7 +51,7 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <main className="hidden md:block max-w-7xl mx-auto px-4 py-10">
+      <main className="hidden md:block px-8 py-10">
         <NewReleasesBanner isAdmin={isAdmin} />
       </main>
 
