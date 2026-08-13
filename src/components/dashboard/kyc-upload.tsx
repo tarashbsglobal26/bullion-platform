@@ -8,7 +8,7 @@ import { UploadCloud, FileText, AlertCircle, CheckCircle2, Clock, XCircle } from
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: "BUSINESS_REGISTRATION", label: "Business Registration" },
   { value: "TAX_CERTIFICATE", label: "Tax Certificate" },
-  { value: "BANK_STATEMENT", label: "Bank Statement" },
+  { value: "KYC_APPLICATION_FORM", label: "KYC Application Form" },
   { value: "ID_DOCUMENT", label: "ID Document" },
   { value: "PROOF_OF_ADDRESS", label: "Proof of Address" },
 ];
@@ -79,7 +79,7 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
         <CardDescription>
           {businessStatus === "UNDER_REVIEW"
             ? "Your documents are under review. You can upload additional documents below if needed."
-            : "Upload your company's verification documents to get approved for wholesale pricing and orders."}
+            : "Upload your company's verification documents to get approved for wholesale orders."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

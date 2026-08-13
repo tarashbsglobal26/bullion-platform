@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const uploadSchema = z.object({
-  type: z.enum(["BUSINESS_REGISTRATION", "TAX_CERTIFICATE", "BANK_STATEMENT", "ID_DOCUMENT", "PROOF_OF_ADDRESS"]),
+  type: z.enum(["BUSINESS_REGISTRATION", "TAX_CERTIFICATE", "KYC_APPLICATION_FORM", "ID_DOCUMENT", "PROOF_OF_ADDRESS"]),
   fileUrl: z.string().url(),
   fileName: z.string(),
 });
