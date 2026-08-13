@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Clock, Building2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Building2, FileText, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 const STATUS_VARIANT: Record<string, any> = {
@@ -36,6 +36,18 @@ export default function BusinessesPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["businesses"] }),
+  });
+
+  const updateDoc = useMutation({
+    mutationFn: async ({ docId, status }: { docId: string; status: "APPROVED" | "REJECTED" }) => {
+      const res = await fetch(`/api/business/kyc`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId, status }),
       });
       return res.json();
     },
@@ -96,18 +108,51 @@ export default function BusinessesPage() {
                       <span>Registered: {format(new Date(biz.createdAt), "MMM d, yyyy")}</span>
                     </div>
                     {biz.kycDocuments?.length > 0 && (
-                      <div className="mt-2 flex gap-2 flex-wrap">
+                      <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
                         {biz.kycDocuments.map((doc: any) => (
-                          <span
-                            key={doc.id}
-                            className={`text-xs px-2 py-0.5 rounded-full ${
-                              doc.status === "APPROVED" ? "bg-green-100 text-green-700" :
-                              doc.status === "REJECTED" ? "bg-red-100 text-red-700" :
-                              "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {doc.type.replace(/_/g, " ")}
-                          </span>
+                          <div key={doc.id} className="flex items-center justify-between gap-3 text-sm">
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 min-w-0 text-amber-700 hover:text-amber-900 hover:underline"
+                            >
+                              <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{doc.type.replace(/_/g, " ")}</span>
+                              <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-60" />
+                            </a>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  doc.status === "APPROVED" ? "bg-green-100 text-green-700" :
+                                  doc.status === "REJECTED" ? "bg-red-100 text-red-700" :
+                                  "bg-yellow-100 text-yellow-700"
+                                }`}
+                              >
+                                {doc.status}
+                              </span>
+                              {doc.status === "PENDING" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateDoc.mutate({ docId: doc.id, status: "APPROVED" })}
+                                    className="text-green-600 hover:text-green-800"
+                                    aria-label="Approve document"
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateDoc.mutate({ docId: doc.id, status: "REJECTED" })}
+                                    className="text-red-500 hover:text-red-700"
+                                    aria-label="Reject document"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
