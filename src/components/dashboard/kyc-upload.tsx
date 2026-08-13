@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { UploadCloud, FileText, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { UploadCloud, FileText, AlertCircle, CheckCircle2, Clock, XCircle, Trash2 } from "lucide-react";
 
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: "BUSINESS_REGISTRATION", label: "Business Registration" },
@@ -37,6 +37,7 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
   const router = useRouter();
   const [docType, setDocType] = useState(DOC_TYPES[0].value);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +75,21 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setError("");
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/business/kyc/${id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Failed to delete document");
+      router.refresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete document.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -150,9 +166,22 @@ export function KycUpload({ businessStatus, documents }: { businessStatus: strin
                     <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <span className="truncate">{DOC_TYPES.find((t) => t.value === d.type)?.label ?? d.type}</span>
                   </div>
-                  <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_STYLE[d.status]}`}>
-                    <Icon className="w-3 h-3" /> {d.status}
-                  </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${STATUS_STYLE[d.status]}`}>
+                      <Icon className="w-3 h-3" /> {d.status}
+                    </span>
+                    {d.status !== "APPROVED" && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(d.id)}
+                        disabled={deletingId === d.id}
+                        className="text-gray-400 hover:text-red-600 disabled:opacity-50 transition-colors"
+                        aria-label={`Delete ${d.fileName}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
