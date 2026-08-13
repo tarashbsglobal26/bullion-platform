@@ -9,8 +9,9 @@
     --ring: 38 92% 50%;
   }
 
-  body {
+  html, body {
     @apply bg-gray-50 text-gray-900;
+    overflow-x: hidden;
   }
 
   * {

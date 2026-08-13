@@ -45,7 +45,7 @@ export function NewReleasesBanner({ isAdmin }: { isAdmin: boolean }) {
   const slide = hasSlides ? slides[index] : null;
 
   const content = (
-    <div className="relative rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 flex flex-col items-center justify-center py-10 text-center overflow-hidden aspect-[21/6] min-h-[180px]">
+    <div className="relative w-full rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 flex flex-col items-center justify-center py-10 text-center overflow-hidden aspect-[21/6] min-h-[180px]">
       {hasSlides && (
         <>
           <div
