@@ -120,16 +120,20 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setError("");
-    const res = await fetch("/api/business", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) {
-      setSuccess(true);
-    } else {
-      const body = await res.json();
-      setError(body.error || "Registration failed");
+    try {
+      const res = await fetch("/api/business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setSuccess(true);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || `Registration failed (${res.status})`);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed. Please check your connection and try again.");
     }
   };
 
@@ -338,7 +342,12 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={handleSubmit(onSubmit, () =>
+                setError("Some information from an earlier step is missing or invalid. Please go back and check all fields.")
+              )}
+              className="space-y-4"
+            >
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
                   <AlertCircle className="w-4 h-4" />
