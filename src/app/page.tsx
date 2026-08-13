@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
+import { NewReleasesBanner } from "@/components/dashboard/new-releases-banner";
 
 export default async function HomePage() {
   const session = await auth();
   const isAuthenticated = !!session;
+  const isAdmin = isAuthenticated && ["SUPER_ADMIN", "ADMIN"].includes((session!.user as any).role);
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -48,6 +50,10 @@ export default async function HomePage() {
           </div>
         </div>
       </header>
+
+      <main className="hidden md:block max-w-7xl mx-auto px-4 py-10">
+        <NewReleasesBanner isAdmin={isAdmin} />
+      </main>
 
       <footer className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
