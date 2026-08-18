@@ -6,8 +6,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, metalLabel, formatWeight } from "@/lib/utils";
-import { ShoppingCart, Search, Package, Plus, Minus, X, Trash2, Pencil, ImagePlus, Download, Bell, BellOff, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Search, Package, Plus, Minus, X, Trash2, Pencil, ImagePlus, Download, Bell, BellOff, ChevronDown, ChevronUp, Star, Shield, TrendingUp, Medal, Gem, CircleDollarSign, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
+const SECTION_META: Record<string, { label: string; description: string; accent: string; icon: React.ElementType }> = {
+  BULLION_SILVER:       { label: "Bullion Silver",        description: "Investment-grade silver",           accent: "gray",   icon: Shield },
+  BULLION_GOLD:         { label: "Bullion Gold",          description: "Pure gold bullion coins",            accent: "yellow", icon: TrendingUp },
+  COMMEMORATIVE_GOLD:   { label: "Commemorative Gold",    description: "Limited-edition proof gold",         accent: "amber",  icon: Medal },
+  COMMEMORATIVE_SILVER: { label: "Commemorative Silver",  description: "Proof and collector silver",         accent: "blue",   icon: Gem },
+  NON_PRECIOUS:         { label: "Non-precious",          description: "Nickel silver & specialty alloys",   accent: "teal",   icon: CircleDollarSign },
+  PLATINUM_PALLADIUM:   { label: "Platinum & Palladium",  description: "Platinum and palladium bullion",     accent: "indigo", icon: Sparkles },
+};
+const SECTION_ORDER = ["BULLION_GOLD", "BULLION_SILVER", "COMMEMORATIVE_GOLD", "COMMEMORATIVE_SILVER", "PLATINUM_PALLADIUM", "NON_PRECIOUS"];
+
+const ACCENT_CLASSES: Record<string, { icon: string; bar: string; header: string }> = {
+  amber:  { icon: "bg-amber-100 text-amber-700",  bar: "bg-amber-500",  header: "text-amber-700"  },
+  gray:   { icon: "bg-gray-100 text-gray-600",    bar: "bg-gray-400",   header: "text-gray-700"   },
+  yellow: { icon: "bg-yellow-100 text-yellow-700",bar: "bg-yellow-400", header: "text-yellow-700" },
+  blue:   { icon: "bg-blue-100 text-blue-700",    bar: "bg-blue-400",   header: "text-blue-700"   },
+  teal:   { icon: "bg-teal-100 text-teal-700",    bar: "bg-teal-400",   header: "text-teal-700"   },
+  indigo: { icon: "bg-indigo-100 text-indigo-700",bar: "bg-indigo-400", header: "text-indigo-700" },
+};
 
 const METAL_COLORS: Record<string, string> = {
   GOLD:         "bg-amber-100 text-amber-800",
@@ -487,8 +507,12 @@ export default function CatalogPage() {
   const user                          = (session?.user as any) ?? {};
   const isAdmin                       = ["SUPER_ADMIN", "ADMIN"].includes(user.role);
   const queryClient                   = useQueryClient();
+  const router                        = useRouter();
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    router.refresh();
+  };
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", metalFilter, search],
@@ -569,6 +593,252 @@ export default function CatalogPage() {
     finally { setDeletingId(null); }
   };
 
+  const renderProductCard = (product: any) => {
+    const allImages = product.images ?? [];
+    const hasImages = allImages.length > 0;
+    const imageSlots = Array.from({ length: Math.max(2, allImages.length) }, (_, i) => i);
+    const slotLabel = (i: number) => i === 0 ? "Obverse" : i === 1 ? "Reverse" : `Photo ${i + 1}`;
+
+    return (
+      <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+        <div className={`h-1.5 ${METAL_STRIP[product.metal] ?? "bg-gray-300"}`} />
+
+        <CardContent className="p-4 flex flex-col flex-1">
+          {/* Name + badge */}
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-semibold text-gray-900 text-sm leading-tight">{product.name}</h3>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${METAL_COLORS[product.metal] ?? "bg-gray-100 text-gray-700"}`}>
+              {metalLabel(product.metal)}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-3">
+            {product.sku} · {product.mint}{product.denomination ? ` · ${product.denomination}` : ""}
+          </p>
+
+          {product.description && (
+            <div className="mb-3">
+              <button
+                type="button"
+                onClick={() => setExpandedDesc(e => ({ ...e, [product.id]: !e[product.id] }))}
+                className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 font-medium"
+              >
+                {expandedDesc[product.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                {expandedDesc[product.id] ? "Hide Description" : "Show Description"}
+              </button>
+              {expandedDesc[product.id] && (
+                <p className="text-xs text-gray-500 mt-1.5">{product.description}</p>
+              )}
+            </div>
+          )}
+
+          {/* Product images */}
+          {hasImages && (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {imageSlots.map((i) => {
+                const url = allImages[i];
+                return (
+                  <div key={i} className="text-center">
+                    {url ? (
+                      <>
+                        <div className="relative group">
+                          <img src={url} alt={slotLabel(i)}
+                            onClick={() => setLightbox(url)}
+                            className="w-full h-16 object-contain rounded-lg border border-gray-100 bg-gray-50 cursor-zoom-in hover:opacity-90 transition-opacity" />
+                          <a href={url} download
+                            onClick={e => e.stopPropagation()}
+                            className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-gray-500 hover:text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                            <Download className="w-3 h-3" />
+                          </a>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">{slotLabel(i)}</p>
+                      </>
+                    ) : (
+                      <div className="w-full h-16 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
+                        <span className="text-xs text-gray-300">{slotLabel(i)}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Details */}
+          <div className="space-y-1.5 text-sm text-gray-600 mb-3">
+            <div className="flex justify-between">
+              <span>Weight</span>
+              <span className="font-medium">{formatWeight(product.weight, product.weightUnit)}</span>
+            </div>
+            {product.metal !== "NICKEL_SILVER" && (
+              <div className="flex justify-between">
+                <span>Purity</span>
+                <span className="font-medium">{(product.purity * 100).toFixed(2)}%</span>
+              </div>
+            )}
+            {product.diameter != null && (
+              <div className="flex justify-between">
+                <span>Diameter</span>
+                <span className="font-medium">{Number(product.diameter)} mm</span>
+              </div>
+            )}
+            {product.mintage != null && (
+              <div className="flex justify-between">
+                <span>Mintage</span>
+                <span className="font-medium">{Number(product.mintage).toLocaleString()}</span>
+              </div>
+            )}
+            {product.spotPrice != null && !product.fixedUnitPrice && (
+              <div className="flex justify-between">
+                <span>Spot Price</span>
+                <span className="font-medium text-gray-400">{formatCurrency(product.spotPrice)}/oz</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-1.5">
+              <span className="font-semibold text-gray-900">{product.fixedUnitPrice ? "Fixed Price" : "Unit Price"}</span>
+              <span className="font-bold text-amber-700 text-base">{formatCurrency(product.calculatedPrice)}</span>
+            </div>
+          </div>
+
+          {/* Volume pricing table */}
+          {product.priceTiers?.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-1">Volume pricing:</p>
+              <div className="space-y-0.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">{Number(product.minOrderQty).toLocaleString()}+ units</span>
+                  <span className="font-medium text-gray-700">{formatCurrency(product.calculatedPrice)}</span>
+                </div>
+                {product.priceTiers.map((t: any) => {
+                  const price = calcTierPrice(
+                    product.spotPrice, Number(product.weight), Number(product.premiumFixed),
+                    t.premiumPercent != null ? Number(t.premiumPercent) : null,
+                    t.fixedUnitPrice != null ? Number(t.fixedUnitPrice) : null,
+                  );
+                  return (
+                    <div key={t.id} className="flex justify-between text-xs">
+                      <span className="text-gray-400">{Number(t.minQty).toLocaleString()}+ units</span>
+                      <span className="font-medium text-amber-600">{formatCurrency(price)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Stock + cart */}
+          <div className="flex items-center justify-between mt-auto gap-2">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <Package className="w-3 h-3" />
+              {product.availableQty > 0
+                ? <span className="text-green-600">{product.availableQty} in stock</span>
+                : <span className="text-red-500">Out of stock</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              {cart[product.id] > 0 && (
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                  {cart[product.id]} in cart
+                </span>
+              )}
+              {product.availableQty > 0 ? (
+                <>
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onClick={() => setQtyClamped(product, getQty(product) - 1)}
+                      className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
+                      disabled={getQty(product) <= (product.minOrderQty ?? 1)}>
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <input
+                      type="number"
+                      min={product.minOrderQty ?? 1}
+                      max={product.availableQty}
+                      value={getQty(product)}
+                      onChange={e => setQtyClamped(product, parseInt(e.target.value) || (product.minOrderQty ?? 1))}
+                      className="w-10 text-center text-sm border-x border-gray-200 py-1 focus:outline-none"
+                    />
+                    <button type="button" onClick={() => setQtyClamped(product, getQty(product) + 1)}
+                      className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
+                      disabled={getQty(product) >= product.availableQty}>
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <Button size="sm" onClick={() => addToCart(product)}>Add</Button>
+                </>
+              ) : !isAdmin ? (
+                <>
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onClick={() => setNotifyQty(product, getNotifyQty(product) - 1)}
+                      className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
+                      disabled={getNotifyQty(product) <= (product.minOrderQty ?? 1)}>
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <input
+                      type="number"
+                      min={product.minOrderQty ?? 1}
+                      value={getNotifyQty(product)}
+                      onChange={e => setNotifyQty(product, parseInt(e.target.value) || (product.minOrderQty ?? 1))}
+                      className="w-10 text-center text-sm border-x border-gray-200 py-1 focus:outline-none"
+                    />
+                    <button type="button" onClick={() => setNotifyQty(product, getNotifyQty(product) + 1)}
+                      className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50">
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  {product.notifyQuantity != null ? (
+                    <Button size="sm" variant="outline" className="gap-1.5"
+                      onClick={() => cancelNotifyMutation.mutate(product.id)}
+                      disabled={cancelNotifyMutation.isPending}>
+                      <BellOff className="w-3.5 h-3.5" /> Requested
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="gap-1.5"
+                      onClick={() => notifyMutation.mutate({ productId: product.id, quantity: getNotifyQty(product) })}
+                      disabled={notifyMutation.isPending}>
+                      <Bell className="w-3.5 h-3.5" /> Notify Me
+                    </Button>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </div>
+
+          {product.minOrderQty > 1 && (
+            <p className="text-xs text-gray-400 mt-1">Min. order: {product.minOrderQty} units</p>
+          )}
+
+          {/* Admin actions */}
+          {isAdmin && (
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4">
+              <button onClick={() => setEditProduct(product)}
+                className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+              <button onClick={() => deleteProduct(product.id, product.name)}
+                disabled={deletingId === product.id}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+                {deletingId === product.id ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const groupedSections = SECTION_ORDER.map((key) => {
+    const sectionProducts = (products ?? []).filter((p: any) => p.category === key);
+    const byMint = sectionProducts.reduce((acc: Record<string, any[]>, p: any) => {
+      (acc[p.mint] ??= []).push(p);
+      return acc;
+    }, {});
+    const sortedMints = Object.entries(byMint).sort(([a], [b]) => {
+      if (a === "The National Bank of Ukraine") return -1;
+      if (b === "The National Bank of Ukraine") return 1;
+      return a.localeCompare(b);
+    });
+    return { key, meta: SECTION_META[key], mints: sortedMints as [string, any[]][] };
+  }).filter((s) => s.mints.length > 0);
+
   return (
     <>
       {lightbox && (
@@ -634,245 +904,46 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* Grid */}
+        {/* Grid, grouped by category then mint */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => <Card key={i} className="animate-pulse"><CardContent className="p-5 h-56 bg-gray-100 rounded-xl" /></Card>)}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products?.map((product: any) => {
-              const allImages = product.images ?? [];
-              const hasImages = allImages.length > 0;
-              const imageSlots = Array.from({ length: Math.max(2, allImages.length) }, (_, i) => i);
-              const slotLabel = (i: number) => i === 0 ? "Obverse" : i === 1 ? "Reverse" : `Photo ${i + 1}`;
-
-              return (
-                <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-                  <div className={`h-1.5 ${METAL_STRIP[product.metal] ?? "bg-gray-300"}`} />
-
-                  <CardContent className="p-4 flex flex-col flex-1">
-                    {/* Name + badge */}
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight">{product.name}</h3>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${METAL_COLORS[product.metal] ?? "bg-gray-100 text-gray-700"}`}>
-                        {metalLabel(product.metal)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 mb-3">
-                      {product.sku} · {product.mint}{product.denomination ? ` · ${product.denomination}` : ""}
-                    </p>
-
-                    {product.description && (
-                      <div className="mb-3">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedDesc(e => ({ ...e, [product.id]: !e[product.id] }))}
-                          className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 font-medium"
-                        >
-                          {expandedDesc[product.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                          {expandedDesc[product.id] ? "Hide Description" : "Show Description"}
-                        </button>
-                        {expandedDesc[product.id] && (
-                          <p className="text-xs text-gray-500 mt-1.5">{product.description}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Product images */}
-                    {hasImages && (
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        {imageSlots.map((i) => {
-                          const url = allImages[i];
-                          return (
-                            <div key={i} className="text-center">
-                              {url ? (
-                                <>
-                                  <div className="relative group">
-                                    <img src={url} alt={slotLabel(i)}
-                                      onClick={() => setLightbox(url)}
-                                      className="w-full h-16 object-contain rounded-lg border border-gray-100 bg-gray-50 cursor-zoom-in hover:opacity-90 transition-opacity" />
-                                    <a href={url} download
-                                      onClick={e => e.stopPropagation()}
-                                      className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-gray-500 hover:text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                      <Download className="w-3 h-3" />
-                                    </a>
-                                  </div>
-                                  <p className="text-xs text-gray-400 mt-0.5">{slotLabel(i)}</p>
-                                </>
-                              ) : (
-                                <div className="w-full h-16 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
-                                  <span className="text-xs text-gray-300">{slotLabel(i)}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Details */}
-                    <div className="space-y-1.5 text-sm text-gray-600 mb-3">
-                      <div className="flex justify-between">
-                        <span>Weight</span>
-                        <span className="font-medium">{formatWeight(product.weight, product.weightUnit)}</span>
-                      </div>
-                      {product.metal !== "NICKEL_SILVER" && (
-                        <div className="flex justify-between">
-                          <span>Purity</span>
-                          <span className="font-medium">{(product.purity * 100).toFixed(2)}%</span>
-                        </div>
-                      )}
-                      {product.diameter != null && (
-                        <div className="flex justify-between">
-                          <span>Diameter</span>
-                          <span className="font-medium">{Number(product.diameter)} mm</span>
-                        </div>
-                      )}
-                      {product.mintage != null && (
-                        <div className="flex justify-between">
-                          <span>Mintage</span>
-                          <span className="font-medium">{Number(product.mintage).toLocaleString()}</span>
-                        </div>
-                      )}
-                      {product.spotPrice != null && !product.fixedUnitPrice && (
-                        <div className="flex justify-between">
-                          <span>Spot Price</span>
-                          <span className="font-medium text-gray-400">{formatCurrency(product.spotPrice)}/oz</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between border-t pt-1.5">
-                        <span className="font-semibold text-gray-900">{product.fixedUnitPrice ? "Fixed Price" : "Unit Price"}</span>
-                        <span className="font-bold text-amber-700 text-base">{formatCurrency(product.calculatedPrice)}</span>
-                      </div>
-                    </div>
-
-                    {/* Volume pricing table */}
-                    {product.priceTiers?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
-                        <p className="text-xs font-medium text-gray-500 mb-1">Volume pricing:</p>
-                        <div className="space-y-0.5">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">{Number(product.minOrderQty).toLocaleString()}+ units</span>
-                            <span className="font-medium text-gray-700">{formatCurrency(product.calculatedPrice)}</span>
-                          </div>
-                          {product.priceTiers.map((t: any) => {
-                            const price = calcTierPrice(
-                              product.spotPrice, Number(product.weight), Number(product.premiumFixed),
-                              t.premiumPercent != null ? Number(t.premiumPercent) : null,
-                              t.fixedUnitPrice != null ? Number(t.fixedUnitPrice) : null,
-                            );
-                            return (
-                              <div key={t.id} className="flex justify-between text-xs">
-                                <span className="text-gray-400">{Number(t.minQty).toLocaleString()}+ units</span>
-                                <span className="font-medium text-amber-600">{formatCurrency(price)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Stock + cart */}
-                    <div className="flex items-center justify-between mt-auto gap-2">
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Package className="w-3 h-3" />
-                        {product.availableQty > 0
-                          ? <span className="text-green-600">{product.availableQty} in stock</span>
-                          : <span className="text-red-500">Out of stock</span>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {cart[product.id] > 0 && (
-                          <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                            {cart[product.id]} in cart
-                          </span>
-                        )}
-                        {product.availableQty > 0 ? (
-                          <>
-                            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                              <button type="button" onClick={() => setQtyClamped(product, getQty(product) - 1)}
-                                className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
-                                disabled={getQty(product) <= (product.minOrderQty ?? 1)}>
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <input
-                                type="number"
-                                min={product.minOrderQty ?? 1}
-                                max={product.availableQty}
-                                value={getQty(product)}
-                                onChange={e => setQtyClamped(product, parseInt(e.target.value) || (product.minOrderQty ?? 1))}
-                                className="w-10 text-center text-sm border-x border-gray-200 py-1 focus:outline-none"
-                              />
-                              <button type="button" onClick={() => setQtyClamped(product, getQty(product) + 1)}
-                                className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
-                                disabled={getQty(product) >= product.availableQty}>
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <Button size="sm" onClick={() => addToCart(product)}>Add</Button>
-                          </>
-                        ) : !isAdmin ? (
-                          <>
-                            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                              <button type="button" onClick={() => setNotifyQty(product, getNotifyQty(product) - 1)}
-                                className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
-                                disabled={getNotifyQty(product) <= (product.minOrderQty ?? 1)}>
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <input
-                                type="number"
-                                min={product.minOrderQty ?? 1}
-                                value={getNotifyQty(product)}
-                                onChange={e => setNotifyQty(product, parseInt(e.target.value) || (product.minOrderQty ?? 1))}
-                                className="w-10 text-center text-sm border-x border-gray-200 py-1 focus:outline-none"
-                              />
-                              <button type="button" onClick={() => setNotifyQty(product, getNotifyQty(product) + 1)}
-                                className="px-1.5 py-1.5 text-gray-500 hover:bg-gray-50">
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                            {product.notifyQuantity != null ? (
-                              <Button size="sm" variant="outline" className="gap-1.5"
-                                onClick={() => cancelNotifyMutation.mutate(product.id)}
-                                disabled={cancelNotifyMutation.isPending}>
-                                <BellOff className="w-3.5 h-3.5" /> Requested
-                              </Button>
-                            ) : (
-                              <Button size="sm" variant="outline" className="gap-1.5"
-                                onClick={() => notifyMutation.mutate({ productId: product.id, quantity: getNotifyQty(product) })}
-                                disabled={notifyMutation.isPending}>
-                                <Bell className="w-3.5 h-3.5" /> Notify Me
-                              </Button>
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {product.minOrderQty > 1 && (
-                      <p className="text-xs text-gray-400 mt-1">Min. order: {product.minOrderQty} units</p>
-                    )}
-
-                    {/* Admin actions */}
-                    {isAdmin && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4">
-                        <button onClick={() => setEditProduct(product)}
-                          className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" /> Edit
-                        </button>
-                        <button onClick={() => deleteProduct(product.id, product.name)}
-                          disabled={deletingId === product.id}
-                          className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                          {deletingId === product.id ? "Removing…" : "Remove"}
-                        </button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+        ) : groupedSections.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">
+            <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>No products found</p>
           </div>
+        ) : (
+          groupedSections.map(({ key, meta, mints }) => {
+            const ac = ACCENT_CLASSES[meta.accent] ?? ACCENT_CLASSES.gray;
+            const Icon = meta.icon;
+            return (
+              <section key={key} className="mb-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${ac.icon}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">{meta.label}</h2>
+                    <p className="text-xs text-gray-500">{meta.description}</p>
+                  </div>
+                </div>
+                {mints.map(([mint, mintProducts]) => (
+                  <div key={mint} className="mb-6">
+                    <div className="flex items-center gap-2 mb-3 pb-1.5 border-b border-gray-200">
+                      <div className={`w-1.5 h-4 rounded-full ${ac.bar}`} />
+                      <h3 className="text-sm font-semibold text-gray-700">{mint}</h3>
+                      <span className="text-xs text-gray-400">{mintProducts.length} product{mintProducts.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {mintProducts.map((product: any) => renderProductCard(product))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            );
+          })
         )}
       </div>
     </>

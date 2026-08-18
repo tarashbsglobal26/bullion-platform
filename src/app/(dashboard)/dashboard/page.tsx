@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, metalLabel, formatWeight } from "@/lib/utils";
-import { ShoppingCart, FileText, Package, Building2, DollarSign, ArrowRight, Star, Shield, TrendingUp, Medal, Gem, CircleDollarSign, Bell, BadgeCheck } from "lucide-react";
+import { ShoppingCart, FileText, Package, Building2, DollarSign, ArrowRight, Star, Shield, TrendingUp, Medal, Gem, CircleDollarSign, Bell, BadgeCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
@@ -18,6 +18,7 @@ const SECTION_META: Record<string, { label: string; description: string; accent:
   COMMEMORATIVE_GOLD:   { label: "Commemorative Gold",   description: "Limited-edition proof gold",                 accent: "amber",  icon: Medal },
   COMMEMORATIVE_SILVER: { label: "Commemorative Silver", description: "Proof and collector silver",                 accent: "blue",   icon: Gem },
   NON_PRECIOUS:         { label: "Non-precious",          description: "Nickel silver & specialty alloys",           accent: "teal",   icon: CircleDollarSign },
+  PLATINUM_PALLADIUM:   { label: "Platinum & Palladium",  description: "Platinum and palladium bullion",             accent: "indigo", icon: Sparkles },
 };
 
 const METAL_BADGE: Record<string, string> = {
@@ -34,6 +35,7 @@ const ACCENT_CLASSES: Record<string, { icon: string; bar: string; header: string
   yellow: { icon: "bg-yellow-100 text-yellow-700",bar: "bg-yellow-400", header: "text-yellow-700" },
   blue:   { icon: "bg-blue-100 text-blue-700",    bar: "bg-blue-400",   header: "text-blue-700"   },
   teal:   { icon: "bg-teal-100 text-teal-700",    bar: "bg-teal-400",   header: "text-teal-700"   },
+  indigo: { icon: "bg-indigo-100 text-indigo-700",bar: "bg-indigo-400", header: "text-indigo-700" },
 };
 
 export default async function DashboardPage() {
@@ -98,6 +100,7 @@ export default async function DashboardPage() {
     { key: "COMMEMORATIVE_GOLD",   products: byCategory(ProductCategory.COMMEMORATIVE_GOLD) },
     { key: "COMMEMORATIVE_SILVER", products: byCategory(ProductCategory.COMMEMORATIVE_SILVER) },
     { key: "NON_PRECIOUS",         products: byCategory(ProductCategory.NON_PRECIOUS) },
+    { key: "PLATINUM_PALLADIUM",   products: byCategory(ProductCategory.PLATINUM_PALLADIUM) },
   ];
 
   return (
