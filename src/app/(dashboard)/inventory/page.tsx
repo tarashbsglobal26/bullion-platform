@@ -74,7 +74,7 @@ function EditStockModal({ item, onClose, onSaved }: { item: any; onClose: () => 
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Cost Price (USD)</label>
-              <Input type="number" step="0.01" min="0" value={form.costPrice} onChange={set("costPrice")} />
+              <Input type="number" step="0.01" min="1" value={form.costPrice} onChange={set("costPrice")} />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Location</label>
@@ -209,6 +209,7 @@ export default function InventoryPage() {
                 <Input
                   type="number"
                   step="0.01"
+                  min="1"
                   value={form.costPrice}
                   onChange={(e) => setForm((f) => ({ ...f, costPrice: Number(e.target.value) }))}
                 />
