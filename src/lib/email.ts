@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
+import { formatCurrency } from "@/lib/utils";
 
 const FROM = process.env.RESEND_FROM_EMAIL || "Wholesale Platform <onboarding@resend.dev>";
 const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "info@vancentralmint.com";
@@ -54,10 +55,6 @@ export async function sendVerificationEmail(to: string, code: string): Promise<s
   return false;
 }
 
-function money(n: number) {
-  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export async function sendNewOrderNotification(order: {
   orderNumber: string;
   businessName: string;
@@ -71,8 +68,8 @@ export async function sendNewOrderNotification(order: {
         <tr>
           <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb">${i.name}<br><span style="color:#9ca3af;font-size:0.75rem">${i.sku}</span></td>
           <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:center">${i.quantity}</td>
-          <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:right">${money(i.unitPrice)}</td>
-          <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:bold">${money(i.totalPrice)}</td>
+          <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:right">${formatCurrency(i.unitPrice)}</td>
+          <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:bold">${formatCurrency(i.totalPrice)}</td>
         </tr>`
     )
     .join("");
@@ -97,7 +94,7 @@ export async function sendNewOrderNotification(order: {
       </table>
       <div style="text-align:right;padding:12px 6px;font-size:1.1rem">
         <span style="color:#6b7280">Order Total: </span>
-        <span style="font-weight:bold;color:#b45309">${money(order.total)}</span>
+        <span style="font-weight:bold;color:#b45309">${formatCurrency(order.total)}</span>
       </div>
       <a href="https://wholesale.vancentralmint.com/orders/${order.orderId}" style="display:inline-block;background:#d97706;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px">View Order</a>
     </div>
