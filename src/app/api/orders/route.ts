@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber, generateInvoiceNumber } from "@/lib/utils";
+import { sendNewOrderNotification } from "@/lib/email";
 import { addBusinessDays } from "date-fns";
 import { z } from "zod";
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const quote = await prisma.quote.findUnique({
     where: { id: parsed.data.quoteId, businessId: user.businessId, status: "ACTIVE" },
-    include: { items: true },
+    include: { items: { include: { product: { select: { name: true, sku: true } } } } },
   });
 
   if (!quote) return NextResponse.json({ error: "Quote not found or expired" }, { status: 404 });
@@ -109,6 +110,20 @@ export async function POST(req: NextRequest) {
 
     return newOrder;
   });
+
+  sendNewOrderNotification({
+    orderNumber: order.orderNumber,
+    businessName: business.name,
+    total: Number(order.total),
+    orderId: order.id,
+    items: quote.items.map((i) => ({
+      name: i.product.name,
+      sku: i.product.sku,
+      quantity: i.quantity,
+      unitPrice: Number(i.unitPrice),
+      totalPrice: Number(i.totalPrice),
+    })),
+  }).catch((err) => console.error("Failed to send new order notification:", err));
 
   return NextResponse.json(order, { status: 201 });
 }
