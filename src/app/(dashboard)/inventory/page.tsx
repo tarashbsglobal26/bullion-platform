@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, metalLabel } from "@/lib/utils";
 import { useState } from "react";
-import { Package, Plus, AlertTriangle, Pencil, X } from "lucide-react";
+import { Package, Plus, AlertTriangle, Pencil, X, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 
 function EditStockModal({ item, onClose, onSaved }: { item: any; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
@@ -133,6 +134,23 @@ export default function InventoryPage() {
     },
   });
 
+  const downloadXls = () => {
+    const rows = (data?.items ?? []).map((item: any) => ({
+      Product: item.product.name,
+      SKU: item.sku,
+      Qty: item.quantity,
+      Reserved: item.reserved,
+      Available: item.quantity - item.reserved,
+      Location: item.location || "",
+      "Cost (USD)": Number(item.costPrice),
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Items");
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `inventory-${date}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       {editItem && (
@@ -148,9 +166,14 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-gray-500 text-sm">Manage physical stock and warehouse allocation</p>
         </div>
-        <Button onClick={() => setShowAddForm(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Stock
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={downloadXls} variant="outline" className="gap-2" disabled={!data?.items?.length}>
+            <Download className="w-4 h-4" /> Download XLS
+          </Button>
+          <Button onClick={() => setShowAddForm(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Add Stock
+          </Button>
+        </div>
       </div>
 
       {showAddForm && (
@@ -169,7 +192,7 @@ export default function InventoryPage() {
                 >
                   <option value="">Select product…</option>
                   {products?.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name} — {p.sku}</option>
                   ))}
                 </select>
               </div>
