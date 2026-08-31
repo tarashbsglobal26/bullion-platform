@@ -19,6 +19,7 @@ const createProductSchema = z.object({
   weightUnit:     z.enum(["OZ", "GRAM", "KG"]).default("OZ"),
   purity:         z.number().min(0).max(1),
   mint:           z.string().min(1),
+  country:        z.string().optional(),
   denomination:   z.string().optional(),
   mintage:        z.number().int().positive().optional(),
   diameter:       z.number().positive().optional(),

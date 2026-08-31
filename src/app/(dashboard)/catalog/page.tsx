@@ -76,7 +76,7 @@ const CATEGORIES = [
 
 const DEFAULT_FORM = {
   name: "", sku: "", metal: "GOLD", category: "BULLION_GOLD",
-  weight: "", weightUnit: "OZ", purity: "", mint: "", denomination: "",
+  weight: "", weightUnit: "OZ", purity: "", mint: "", country: "", denomination: "",
   mintage: "", diameter: "",
   year: "", description: "", premiumPercent: "", fixedUnitPrice: "", minOrderQty: "1",
 };
@@ -104,6 +104,7 @@ function initForm(product?: any) {
     weightUnit:    product.weightUnit ?? "OZ",
     purity:        trim(Number(product.purity) * 100),
     mint:          product.mint ?? "",
+    country:       product.country ?? "",
     denomination:  product.denomination ?? "",
     mintage:       product.mintage ? String(product.mintage) : "",
     diameter:      product.diameter ? trim(Number(product.diameter)) : "",
@@ -229,6 +230,7 @@ function ProductFormModal({ product, onClose, onSaved }: {
       if (!isEdit)          body.sku = form.sku;
       if (form.year)        body.year = parseInt(form.year);
       if (form.description) body.description = form.description;
+      if (form.country)      body.country = form.country;
       if (form.denomination) body.denomination = form.denomination;
       if (form.mintage)   body.mintage  = parseInt(form.mintage);
       if (form.diameter)  body.diameter = parseFloat(form.diameter);
@@ -281,6 +283,10 @@ function ProductFormModal({ product, onClose, onSaved }: {
             <div>
               <label className={lbl}>Mint *</label>
               <Input value={form.mint} onChange={set("mint")} placeholder="e.g. US Mint" required />
+            </div>
+            <div>
+              <label className={lbl}>Country</label>
+              <Input value={form.country} onChange={set("country")} placeholder="e.g. United States" />
             </div>
             <div>
               <label className={lbl}>Metal *</label>
@@ -673,6 +679,12 @@ export default function CatalogPage() {
               <div className="flex justify-between">
                 <span>Purity</span>
                 <span className="font-medium">{(product.purity * 100).toFixed(2)}%</span>
+              </div>
+            )}
+            {product.country && (
+              <div className="flex justify-between">
+                <span>Country</span>
+                <span className="font-medium">{product.country}</span>
               </div>
             )}
             {product.diameter != null && (

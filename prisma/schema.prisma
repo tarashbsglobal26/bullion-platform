@@ -217,6 +217,7 @@ model Product {
   weightUnit     WeightUnit      @default(OZ)
   purity         Decimal         @db.Decimal(5, 4)
   mint           String
+  country        String?
   denomination   String?
   mintage        Int?
   diameter       Decimal?        @db.Decimal(6, 2)

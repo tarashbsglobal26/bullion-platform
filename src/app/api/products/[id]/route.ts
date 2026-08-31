@@ -11,6 +11,7 @@ const updateSchema = z.object({
   weightUnit:     z.enum(["OZ", "GRAM", "KG"]).optional(),
   purity:         z.number().min(0).max(1).optional(),
   mint:           z.string().min(1).optional(),
+  country:        z.string().optional().nullable(),
   denomination:   z.string().optional().nullable(),
   mintage:        z.number().int().positive().optional().nullable(),
   diameter:       z.number().positive().optional().nullable(),
