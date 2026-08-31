@@ -74,6 +74,16 @@ const CATEGORIES = [
   { value: "PLATINUM_PALLADIUM",  label: "Platinum & Palladium" },
 ];
 
+const MINTS = [
+  "The National Bank of Ukraine (NBU)",
+  "The Perth Mint",
+  "Czech Mint",
+  "New Zealand Mint",
+  "AGORO",
+  "Germania Mint",
+  "CIT",
+];
+
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
   "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
@@ -309,7 +319,12 @@ function ProductFormModal({ product, onClose, onSaved }: {
             </div>
             <div>
               <label className={lbl}>Mint *</label>
-              <Input value={form.mint} onChange={set("mint")} placeholder="e.g. US Mint" required />
+              <select value={form.mint} onChange={set("mint")} className={sel} required>
+                <option value="" disabled>Select…</option>
+                {(form.mint && !MINTS.includes(form.mint) ? [form.mint, ...MINTS] : MINTS).map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={lbl}>Country</label>
