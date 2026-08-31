@@ -159,6 +159,12 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Mint {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model Business {
   id              String         @id @default(cuid())
   name            String

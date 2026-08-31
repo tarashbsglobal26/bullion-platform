@@ -74,16 +74,6 @@ const CATEGORIES = [
   { value: "PLATINUM_PALLADIUM",  label: "Platinum & Palladium" },
 ];
 
-const MINTS = [
-  "The National Bank of Ukraine (NBU)",
-  "The Perth Mint",
-  "Czech Mint",
-  "New Zealand Mint",
-  "AGORO",
-  "Germania Mint",
-  "CIT",
-];
-
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
   "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
@@ -169,6 +159,46 @@ function ProductFormModal({ product, onClose, onSaved }: {
   const [loading, setLoading]     = useState(false);
   const [uploading, setUploading] = useState<0 | 1 | null>(null);
   const [error, setError]         = useState("");
+  const [manageMints, setManageMints] = useState(false);
+  const [newMintName, setNewMintName] = useState("");
+  const [mintError, setMintError]     = useState("");
+  const queryClientForMints           = useQueryClient();
+  const { data: mints } = useQuery({
+    queryKey: ["mints"],
+    queryFn: async () => {
+      const res = await fetch("/api/mints");
+      return res.json();
+    },
+  });
+  const mintNames: string[] = mints?.map((m: any) => m.name) ?? [];
+
+  const addMint = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await fetch("/api/mints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Failed to add mint");
+      return body;
+    },
+    onSuccess: () => {
+      setMintError("");
+      setNewMintName("");
+      queryClientForMints.invalidateQueries({ queryKey: ["mints"] });
+    },
+    onError: (err: unknown) => setMintError(err instanceof Error ? err.message : "Failed to add mint"),
+  });
+
+  const deleteMint = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mints/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete mint");
+    },
+    onSuccess: () => queryClientForMints.invalidateQueries({ queryKey: ["mints"] }),
+  });
+
   const [tiers, setTiers]         = useState<TierRow[]>(
     product?.priceTiers?.map((t: any) => ({
       minQty: String(t.minQty),
@@ -318,13 +348,52 @@ function ProductFormModal({ product, onClose, onSaved }: {
                 : <Input value={form.sku} onChange={set("sku")} placeholder="e.g. AGE-1OZ-2024" required />}
             </div>
             <div>
-              <label className={lbl}>Mint *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className={lbl + " mb-0"}>Mint *</label>
+                <button type="button" onClick={() => setManageMints(v => !v)}
+                  className="text-xs text-amber-600 hover:text-amber-800 font-medium">
+                  {manageMints ? "Close" : "Manage list"}
+                </button>
+              </div>
               <select value={form.mint} onChange={set("mint")} className={sel} required>
                 <option value="" disabled>Select…</option>
-                {(form.mint && !MINTS.includes(form.mint) ? [form.mint, ...MINTS] : MINTS).map(m => (
+                {(form.mint && !mintNames.includes(form.mint) ? [form.mint, ...mintNames] : mintNames).map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
+              {manageMints && (
+                <div className="mt-2 p-3 border border-gray-200 rounded-lg bg-gray-50 space-y-2">
+                  {mintError && <p className="text-xs text-red-600">{mintError}</p>}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newMintName}
+                      onChange={(e) => setNewMintName(e.target.value)}
+                      placeholder="New mint name"
+                      className="text-sm h-8"
+                    />
+                    <button type="button"
+                      onClick={() => newMintName.trim() && addMint.mutate(newMintName.trim())}
+                      disabled={addMint.isPending || !newMintName.trim()}
+                      className="text-xs font-medium px-3 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 flex-shrink-0">
+                      Add
+                    </button>
+                  </div>
+                  {mintNames.length > 0 && (
+                    <ul className="space-y-1 max-h-32 overflow-y-auto">
+                      {mints?.map((m: any) => (
+                        <li key={m.id} className="flex items-center justify-between text-xs text-gray-600 px-1">
+                          <span>{m.name}</span>
+                          <button type="button" onClick={() => deleteMint.mutate(m.id)}
+                            disabled={deleteMint.isPending}
+                            className="text-red-400 hover:text-red-600 disabled:opacity-50">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className={lbl}>Country</label>
