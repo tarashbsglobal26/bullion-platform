@@ -52,6 +52,9 @@ const OZ_FRACTIONS = [
   { value: "0.25", label: "1/4 oz" },
   { value: "0.5",  label: "1/2 oz" },
   { value: "1",    label: "1 oz" },
+  { value: "2",    label: "2 oz" },
+  { value: "3",    label: "3 oz" },
+  { value: "5",    label: "5 oz" },
 ];
 
 type TierRow = { minQty: string; value: string };
