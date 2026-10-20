@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, metalLabel } from "@/lib/utils";
 import { useState } from "react";
-import { Package, Plus, AlertTriangle, Pencil, X, Download } from "lucide-react";
+import { Package, Plus, AlertTriangle, Pencil, X, Download, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const LOCATIONS = ["Poland", "Canada", "UK", "Ukraine"];
@@ -110,6 +110,7 @@ export default function InventoryPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [form, setForm] = useState({ productId: "", quantity: 0, costPrice: 0, location: "", batchNo: "" });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -144,6 +145,26 @@ export default function InventoryPage() {
       setForm({ productId: "", quantity: 0, costPrice: 0, location: "", batchNo: "" });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const res = await fetch(`/api/inventory/${itemId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete stock item");
+      }
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inventory"] }),
+    onError: (err: Error) => alert(err.message),
+    onSettled: () => setDeletingId(null),
+  });
+
+  const deleteItem = (item: any) => {
+    if (!confirm(`Delete this stock entry for ${item.product.name} (${item.sku})? This cannot be undone.`)) return;
+    setDeletingId(item.id);
+    deleteMutation.mutate(item.id);
+  };
 
   const downloadXls = () => {
     const rows = (data?.items ?? []).map((item: any) => ({
@@ -324,10 +345,17 @@ export default function InventoryPage() {
                       <td className="px-5 py-3 text-gray-500">{item.location || "—"}</td>
                       <td className="px-5 py-3 text-right font-mono">{formatCurrency(Number(item.costPrice))}</td>
                       <td className="px-5 py-3 text-right">
-                        <button onClick={() => setEditItem(item)}
-                          className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" /> Edit
-                        </button>
+                        <div className="flex items-center justify-end gap-3">
+                          <button onClick={() => setEditItem(item)}
+                            className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors">
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button onClick={() => deleteItem(item)}
+                            disabled={deletingId === item.id}
+                            className="inline-flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50">
+                            <Trash2 className="w-3.5 h-3.5" /> {deletingId === item.id ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -30,3 +30,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json(item);
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session || !["SUPER_ADMIN", "ADMIN"].includes((session.user as any).role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const item = await prisma.inventoryItem.findUnique({ where: { id } });
+  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (item.reserved > 0) {
+    return NextResponse.json({ error: "Cannot delete a stock item with reserved quantity" }, { status: 400 });
+  }
+
+  await prisma.inventoryItem.delete({ where: { id } });
+  return NextResponse.json({ success: true });
+}
