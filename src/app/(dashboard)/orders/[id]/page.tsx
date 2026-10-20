@@ -158,11 +158,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className="flex items-center gap-2">
           {order.invoice && (
-            <a href={`/api/orders/${order.id}/invoice`} target="_blank" rel="noreferrer">
-              <Button variant="outline" className="gap-2">
+            order.status === "PENDING_APPROVAL" ? (
+              <Button variant="outline" className="gap-2" disabled title="Available once the order is confirmed">
                 <FileDown className="w-4 h-4" /> Download Invoice
               </Button>
-            </a>
+            ) : (
+              <a href={`/api/orders/${order.id}/invoice`} target="_blank" rel="noreferrer">
+                <Button variant="outline" className="gap-2">
+                  <FileDown className="w-4 h-4" /> Download Invoice
+                </Button>
+              </a>
+            )
           )}
           {isAdmin && DELETABLE_STATUSES.includes(order.status) && (
             <Button variant="outline" className="gap-2 text-red-500 border-red-200 hover:bg-red-50"

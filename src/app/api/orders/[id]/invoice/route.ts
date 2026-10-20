@@ -25,6 +25,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!order || !order.invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
 
+  if (order.status === "PENDING_APPROVAL") {
+    return NextResponse.json({ error: "Invoice is available once the order has been confirmed" }, { status: 403 });
+  }
+
   const pdfBytes = await generateInvoicePDF({
     invoiceNumber: order.invoice.invoiceNumber,
     orderNumber: order.orderNumber,

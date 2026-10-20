@@ -129,11 +129,17 @@ export default function OrdersPage() {
                           </Button>
                         </Link>
                         {order.invoice && (
-                          <a href={`/api/orders/${order.id}/invoice`} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="outline">
+                          order.status === "PENDING_APPROVAL" ? (
+                            <Button size="sm" variant="outline" disabled title="Available once the order is confirmed">
                               <FileDown className="w-3 h-3 mr-1" /> Invoice
                             </Button>
-                          </a>
+                          ) : (
+                            <a href={`/api/orders/${order.id}/invoice`} target="_blank" rel="noreferrer">
+                              <Button size="sm" variant="outline">
+                                <FileDown className="w-3 h-3 mr-1" /> Invoice
+                              </Button>
+                            </a>
+                          )
                         )}
                         {isAdmin && DELETABLE_STATUSES.includes(order.status) && (
                           <Button size="sm" variant="outline"
