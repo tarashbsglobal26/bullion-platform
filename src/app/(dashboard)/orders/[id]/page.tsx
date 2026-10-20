@@ -23,7 +23,15 @@ const STATUS_VARIANT: Record<string, any> = {
   CANCELLED: "destructive",
 };
 
-const STATUSES = ["PENDING_APPROVAL", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+const STATUS_SEQUENCE = ["PENDING_APPROVAL", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"];
+
+function getAllowedStatuses(current: string): string[] {
+  if (current === "CANCELLED") return ["CANCELLED"];
+  const idx = STATUS_SEQUENCE.indexOf(current);
+  const allowed = STATUS_SEQUENCE.slice(0, idx + 2);
+  if (current !== "DELIVERED") allowed.push("CANCELLED");
+  return allowed;
+}
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -60,7 +68,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, trackingNumber, carrier }),
       });
-      if (!res.ok) throw new Error("Failed to update order");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update order");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markPaid: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to mark order as paid");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -195,8 +225,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     onChange={(e) => setStatus(e.target.value)}
                     className="w-full h-10 border border-gray-300 rounded-md px-3 text-sm bg-white"
                   >
-                    {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+                    {getAllowedStatuses(order.status).map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
                   </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Status must move forward one step at a time — it can't skip ahead.
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -213,6 +246,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 </Button>
                 {updateMutation.isError && (
                   <p className="text-red-500 text-xs">{(updateMutation.error as Error).message}</p>
+                )}
+
+                {order.invoice && !order.invoice.paidAt && (
+                  <div className="pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => markPaidMutation.mutate()}
+                      disabled={markPaidMutation.isPending || order.status === "PENDING_APPROVAL"}
+                      title={order.status === "PENDING_APPROVAL" ? "Confirm the order first" : undefined}
+                    >
+                      {markPaidMutation.isPending ? "Marking…" : "Mark as Paid"}
+                    </Button>
+                    {order.status === "PENDING_APPROVAL" ? (
+                      <p className="text-xs text-gray-400 mt-1">Confirm the order before marking it as paid.</p>
+                    ) : null}
+                    {markPaidMutation.isError && (
+                      <p className="text-red-500 text-xs mt-1">{(markPaidMutation.error as Error).message}</p>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
