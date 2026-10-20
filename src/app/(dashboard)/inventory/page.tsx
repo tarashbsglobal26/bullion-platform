@@ -10,6 +10,8 @@ import { useState } from "react";
 import { Package, Plus, AlertTriangle, Pencil, X, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
+const LOCATIONS = ["Poland", "Canada", "UK", "Ukraine"];
+
 function EditStockModal({ item, onClose, onSaved }: { item: any; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     quantity:  String(item.quantity),
@@ -22,7 +24,7 @@ function EditStockModal({ item, onClose, onSaved }: { item: any; onClose: () => 
   const [error, setError]     = useState("");
 
   const set = (k: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +80,16 @@ function EditStockModal({ item, onClose, onSaved }: { item: any; onClose: () => 
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Location</label>
-              <Input value={form.location} onChange={set("location")} placeholder="Vault A / Shelf 3" />
+              <select
+                className="w-full h-10 border border-gray-300 rounded-md px-3 text-sm bg-white"
+                value={form.location}
+                onChange={set("location")}
+              >
+                <option value="">Select location…</option>
+                {LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="text-sm font-medium text-gray-700">Batch No.</label>
@@ -216,11 +227,16 @@ export default function InventoryPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Location</label>
-                <Input
+                <select
+                  className="w-full h-10 border border-gray-300 rounded-md px-3 text-sm bg-white"
                   value={form.location}
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  placeholder="Vault A / Shelf 3"
-                />
+                >
+                  <option value="">Select location…</option>
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Batch No.</label>
