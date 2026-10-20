@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import Link from "next/link";
-import { FileDown, Eye, Package, Trash2 } from "lucide-react";
+import { FileDown, Eye, Package, Trash2, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -57,6 +57,31 @@ export default function OrdersPage() {
     if (!confirm(`Delete order ${order.orderNumber}? This cannot be undone.`)) return;
     setDeletingId(order.id);
     deleteMutation.mutate(order.id);
+  };
+
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const confirmMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONFIRMED" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to confirm order");
+      }
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+    onSettled: () => setConfirmingId(null),
+  });
+
+  const confirmOrder = (order: any) => {
+    if (!confirm(`Confirm order ${order.orderNumber}?`)) return;
+    setConfirmingId(order.id);
+    confirmMutation.mutate(order.id);
   };
 
   return (
@@ -128,6 +153,14 @@ export default function OrdersPage() {
                             <Eye className="w-3 h-3 mr-1" /> View
                           </Button>
                         </Link>
+                        {isAdmin && order.status === "PENDING_APPROVAL" && (
+                          <Button size="sm"
+                            onClick={() => confirmOrder(order)}
+                            disabled={confirmingId === order.id}
+                            className="gap-1">
+                            <CheckCircle className="w-3 h-3 mr-1" /> {confirmingId === order.id ? "Confirming…" : "Confirm"}
+                          </Button>
+                        )}
                         {order.invoice && (
                           order.status === "PENDING_APPROVAL" ? (
                             <Button size="sm" variant="outline" disabled title="Available once the order is confirmed">
