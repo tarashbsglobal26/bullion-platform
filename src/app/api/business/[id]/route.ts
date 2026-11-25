@@ -8,6 +8,8 @@ const updateSchema = z.object({
   creditLimit: z.number().min(0).optional(),
   paymentTermDays: z.number().int().positive().optional(),
   notes: z.string().optional(),
+  mintAccessLimited: z.boolean().optional(),
+  allowedMints: z.array(z.string().min(1)).optional(),
 });
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

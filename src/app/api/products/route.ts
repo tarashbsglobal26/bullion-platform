@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
+import { getAllowedMints, mintFilter } from "@/lib/mint-access";
 import { z } from "zod";
 
 const tierSchema = z.object({
@@ -43,9 +44,12 @@ export async function GET(req: NextRequest) {
   const search   = searchParams.get("search");
   const category = searchParams.get("category");
 
+  const allowedMints = await getAllowedMints(session.user);
+
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
+      ...mintFilter(allowedMints),
       ...(metal    ? { metal:    metal    as any } : {}),
       ...(category ? { category: category as any } : {}),
       ...(search   ? { name: { contains: search, mode: "insensitive" } } : {}),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAllowedMints } from "@/lib/mint-access";
 import { z } from "zod";
 
 const notifySchema = z.object({
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
 
   const user = session.user as any;
+  const allowedMints = await getAllowedMints(user);
+  if (allowedMints !== null && !allowedMints.includes(product.mint)) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
   const notification = await prisma.stockNotification.upsert({
     where: { productId_userId: { productId: id, userId: user.id } },
     update: { quantity: parsed.data.quantity, notifiedAt: null },

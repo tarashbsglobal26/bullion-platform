@@ -178,6 +178,9 @@ model Business {
   creditLimit     Decimal        @default(0) @db.Decimal(18, 2)
   creditUsed      Decimal        @default(0) @db.Decimal(18, 2)
   paymentTermDays Int            @default(30)
+  // When true, this customer only sees/orders products whose mint is in allowedMints
+  mintAccessLimited Boolean      @default(false)
+  allowedMints    String[]       @default([])
   notes           String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

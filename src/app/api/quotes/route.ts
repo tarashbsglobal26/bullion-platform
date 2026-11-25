@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
 import { generateQuoteNumber } from "@/lib/utils";
+import { getAllowedMints } from "@/lib/mint-access";
 import { z } from "zod";
 
 const createQuoteSchema = z.object({
@@ -55,6 +56,15 @@ export async function POST(req: NextRequest) {
   const products = await prisma.product.findMany({
     where: { id: { in: parsed.data.items.map((i) => i.productId) }, isActive: true },
   });
+
+  const allowedMints = await getAllowedMints(user);
+  const blocked = allowedMints === null ? [] : products.filter((p) => !allowedMints.includes(p.mint));
+  if (blocked.length > 0) {
+    return NextResponse.json(
+      { error: `Your account does not have access to: ${blocked.map((p) => p.name).join(", ")}` },
+      { status: 403 }
+    );
+  }
 
   let subtotal = 0;
   const quoteItems = parsed.data.items.map((item) => {

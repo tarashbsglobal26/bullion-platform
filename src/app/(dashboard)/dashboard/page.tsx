@@ -10,6 +10,7 @@ import { getLatestSpotPrices, calculateProductPrice } from "@/lib/spot-prices";
 import { ProductCategory } from "@prisma/client";
 import { NewReleasesBanner } from "@/components/dashboard/new-releases-banner";
 import { KycUpload } from "@/components/dashboard/kyc-upload";
+import { getAllowedMints, mintFilter } from "@/lib/mint-access";
 
 const SECTION_META: Record<string, { label: string; description: string; accent: string; icon: React.ElementType }> = {
   new2026:              { label: "New Releases 2026 — Coming Soon", description: "Latest 2026-dated coins", accent: "amber",  icon: Star },
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
   const session = await auth();
   const user = session!.user as any;
   const isAdmin = ["SUPER_ADMIN", "ADMIN"].includes(user.role);
+  const allowedMints = await getAllowedMints(user);
 
   const [orderStats, quoteCount, inventoryAlerts, pendingBusinesses, verifiedBusinesses, notifyRequestCount, recentOrders, allProducts, spotPrices, ownBusiness] =
     await Promise.all([
@@ -62,7 +64,7 @@ export default async function DashboardPage() {
         include: { business: { select: { name: true } } },
       }),
       prisma.product.findMany({
-        where: { isActive: true },
+        where: { isActive: true, ...mintFilter(allowedMints) },
         include: { inventory: { select: { quantity: true, reserved: true } } },
         orderBy: [{ year: "desc" }, { name: "asc" }],
       }),

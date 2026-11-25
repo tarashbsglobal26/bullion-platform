@@ -6,8 +6,79 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Clock, Building2, FileText, ExternalLink, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Building2, FileText, ExternalLink, Trash2, Lock } from "lucide-react";
 import { useState } from "react";
+
+function MintAccess({ biz, mintNames }: { biz: any; mintNames: string[] }) {
+  const queryClient = useQueryClient();
+  const [limited, setLimited] = useState<boolean>(!!biz.mintAccessLimited);
+  const [selected, setSelected] = useState<string[]>(biz.allowedMints ?? []);
+  const [error, setError] = useState("");
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/business/${biz.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mintAccessLimited: limited, allowedMints: selected }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (err: unknown) => setError(err instanceof Error ? err.message : "Failed to save"),
+  });
+
+  const dirty =
+    limited !== !!biz.mintAccessLimited ||
+    [...selected].sort().join("|") !== [...(biz.allowedMints ?? [])].sort().join("|");
+
+  // Show saved mints that were later removed from the list, so they can be unticked
+  const options = Array.from(new Set([...mintNames, ...selected])).sort();
+
+  const toggle = (name: string) =>
+    setSelected((s) => (s.includes(name) ? s.filter((m) => m !== name) : [...s, name]));
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+        <input type="checkbox" checked={limited} onChange={(e) => setLimited(e.target.checked)} className="accent-amber-600" />
+        <Lock className="w-3.5 h-3.5 text-gray-500" />
+        Limited access by mint
+      </label>
+      {limited && (
+        <div className="mt-2 ml-6">
+          <p className="text-xs text-gray-500 mb-2">This customer can only see and order products from the ticked mints.</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {options.length === 0 && <span className="text-xs text-gray-400">No mints defined yet (add them in Catalog → Manage list).</span>}
+            {options.map((name) => (
+              <label key={name} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input type="checkbox" checked={selected.includes(name)} onChange={() => toggle(name)} className="accent-amber-600" />
+                {name}
+              </label>
+            ))}
+          </div>
+          {selected.length === 0 && (
+            <p className="text-xs text-amber-700 mt-2">No mints ticked: this customer will see no products.</p>
+          )}
+        </div>
+      )}
+      {(dirty || error) && (
+        <div className="flex items-center gap-3 mt-2 ml-6">
+          {dirty && (
+            <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+              {save.isPending ? "Saving..." : "Save access"}
+            </Button>
+          )}
+          {error && <span className="text-xs text-red-600">{error}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_VARIANT: Record<string, any> = {
   PENDING_KYC: "warning",
@@ -30,6 +101,12 @@ export default function BusinessesPage() {
       return res.json();
     },
   });
+
+  const { data: mints } = useQuery({
+    queryKey: ["mints"],
+    queryFn: async () => (await fetch("/api/mints")).json(),
+  });
+  const mintNames: string[] = Array.isArray(mints) ? mints.map((m: any) => m.name) : [];
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -134,7 +211,11 @@ export default function BusinessesPage() {
                       <span>Credit: {formatCurrency(Number(biz.creditLimit))}</span>
                       <span>Terms: {biz.paymentTermDays}d</span>
                       <span>Registered: {format(new Date(biz.createdAt), "MMM d, yyyy")}</span>
+                      {biz.mintAccessLimited && (
+                        <span className="text-amber-700">Limited: {biz.allowedMints?.length ? biz.allowedMints.join(", ") : "no mints"}</span>
+                      )}
                     </div>
+                    <MintAccess key={`${biz.id}-${biz.updatedAt}`} biz={biz} mintNames={mintNames} />
                     {biz.kycDocuments?.length > 0 && (
                       <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
                         {biz.kycDocuments.map((doc: any) => (

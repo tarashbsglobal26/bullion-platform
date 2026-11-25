@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber, generateInvoiceNumber } from "@/lib/utils";
 import { sendNewOrderNotification } from "@/lib/email";
 import { addBusinessDays } from "date-fns";
+import { getAllowedMints } from "@/lib/mint-access";
 import { z } from "zod";
 
 const createOrderSchema = z.object({
@@ -58,10 +59,20 @@ export async function POST(req: NextRequest) {
 
   const quote = await prisma.quote.findUnique({
     where: { id: parsed.data.quoteId, businessId: user.businessId, status: "ACTIVE" },
-    include: { items: { include: { product: { select: { name: true, sku: true } } } } },
+    include: { items: { include: { product: { select: { name: true, sku: true, mint: true } } } } },
   });
 
   if (!quote) return NextResponse.json({ error: "Quote not found or expired" }, { status: 404 });
+
+  // Access may have been limited after the quote was created
+  const allowedMints = await getAllowedMints(user);
+  const blocked = allowedMints === null ? [] : quote.items.filter((i) => !allowedMints.includes(i.product.mint));
+  if (blocked.length > 0) {
+    return NextResponse.json(
+      { error: `Your account does not have access to: ${blocked.map((i) => i.product.name).join(", ")}` },
+      { status: 403 }
+    );
+  }
   if (quote.expiresAt < new Date()) {
     await prisma.quote.update({ where: { id: quote.id }, data: { status: "EXPIRED" } });
     return NextResponse.json({ error: "Quote has expired" }, { status: 400 });
